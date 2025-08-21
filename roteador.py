@@ -125,16 +125,32 @@ router_instance = None
 
 @app.route('/routes', methods=['GET'])
 def get_routes():
-    """Endpoint para visualizar a tabela de roteamento atual."""
-    if router_instance:
-        return jsonify({
-            "vizinhos": router_instance.neighbors,
-            "my_network": router_instance.my_network,
-            "my_address": router_instance.my_address,
-            "update_interval": router_instance.update_interval,
-            "routing_table": router_instance.routing_table
+    """Endpoint para visualizar a tabela de roteamento atual (organizada)."""
+    if not router_instance:
+        return jsonify({"error": "Roteador não inicializado"}), 500
+
+    tabela_formatada = []
+    for rede, info in router_instance.routing_table.items():
+        tabela_formatada.append({
+            "destino": rede,
+            "custo": info.get("cost", "-"),
+            "proximo_salto": info.get("next_hop", "-")
         })
-    return jsonify({"error": "Roteador não inicializado"}), 500
+
+    response = {
+        "roteador": {
+            "meu_endereco": router_instance.my_address,
+            "minha_rede": router_instance.my_network,
+            "intervalo_atualizacao": router_instance.update_interval
+        },
+        "vizinhos": [
+            {"endereco": vizinho, "custo_link": custo}
+            for vizinho, custo in router_instance.neighbors.items()
+        ],
+        "tabela_de_roteamento": tabela_formatada
+    }
+
+    return jsonify(response), 200
 
 
 @app.route('/receive_update', methods=['POST'])
